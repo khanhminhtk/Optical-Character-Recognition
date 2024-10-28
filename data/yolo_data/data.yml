@@ -1,0 +1,7 @@
+names:
+- text
+nc: 1
+path: yolo_data
+test: /content/drive/MyDrive/Code/cv/OCR/data/yolo_data/test/images
+train: /content/drive/MyDrive/Code/cv/OCR/data/yolo_data/train/images
+val: /content/drive/MyDrive/Code/cv/OCR/data/yolo_data/val/images
