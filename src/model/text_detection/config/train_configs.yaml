@@ -1,0 +1,24 @@
+model_config:
+  model_name: "yolo11n"
+  pretrained: true
+  weights: 
+  device: "cuda"
+
+train_config:
+  epochs: 300
+  imgsz: 640
+  batch_size: 4
+  patience: 10
+  workers: 4
+
+optimizer_config:
+  optimizer: "adamw"
+  lr0: 1e-3
+  weight_decay: 1e-4
+
+augment: true
+
+save_config:
+  project: "runs/train"
+  name: "exp"
+  save_period: 1
