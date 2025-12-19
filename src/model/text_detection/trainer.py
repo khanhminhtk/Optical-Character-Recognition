@@ -71,24 +71,6 @@ class Trainer:
         return results
     
     def get_bboxes(self, results) -> list:
-        """
-        Extract bounding box coordinates from YOLO results.
-        
-        Args:
-            results: YOLO prediction results
-            
-        Returns:
-            List of dictionaries containing bbox info for each detection:
-            [
-                {
-                    'bbox': [x1, y1, x2, y2],  # coordinates
-                    'confidence': float,
-                    'class': int,
-                    'class_name': str
-                },
-                ...
-            ]
-        """
         all_detections = []
         
         for result in results:

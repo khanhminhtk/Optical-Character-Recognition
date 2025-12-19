@@ -1,0 +1,32 @@
+#!/bin/bash
+
+python src/model/train.py \
+    --data_dir ./data \
+    --checkpoint_dir ./checkpoints \
+    --tensorboard_dir ./runs \
+    --img_height 32 \
+    --img_width 128 \
+    --patch_size 4 \
+    --embedding_dim 256 \
+    --num_heads 8 \
+    --num_layers 6 \
+    --mlp_dim 512 \
+    --hidden_classifier 512 \
+    --num_classes 26 \
+    --dropout 0.1 \
+    --batch_size 32 \
+    --num_epochs 100 \
+    --lr 1e-4 \
+    --weight_decay 1e-5 \
+    --gradient_clip 1.0 \
+    --loss_weights 0.7 0.3 \
+    --focal_alpha 1.0 \
+    --focal_gamma 2.0 \
+    --label_smoothing 0.1 \
+    --use_scheduler \
+    --scheduler_type plateau \
+    --early_stopping_patience 10 \
+    --use_tensorboard \
+    --save_every 5 \
+    --num_workers 4 \
+    --device cuda
