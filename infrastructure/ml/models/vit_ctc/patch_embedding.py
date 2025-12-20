@@ -27,6 +27,7 @@ class PatchEmbedding(nn.Module):
         
         return embeddings
 
+    @staticmethod
     def extract_patches(images, rows, cols):
         patch_height = 224 // rows
         patch_width = 224 // cols
