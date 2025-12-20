@@ -10,8 +10,12 @@ sys.path.insert(0, str(project_root))
 
 from infrastructure.ml.models.vit_ctc.model import ModelTextRecoginizer
 from infrastructure.ml.models.vit_ctc.pos_patch_embed import PatchEmbedWithPos
+from infrastructure.ml.models.vit_ctc.patch_embedding import PatchEmbedding
+from infrastructure.ml.models.vit_ctc.position_embedding import PosEmbedding
+from infrastructure.ml.models.vit_ctc.backbone import Backbone
 from infrastructure.ml.models.vit_ctc.transformer import TransformerBlock
 from infrastructure.ml.models.vit_ctc.trainer_factory import create_trainer, create_trainer_with_ctc
+from torchvision.models.mobilenetv3 import MobileNet_V3_Small_Weights, mobilenet_v3_small
 
 
 def parse_args():
@@ -91,16 +95,27 @@ def parse_args():
 
 
 def create_model(args):
-    patch_embed = PatchEmbedWithPos(
-        image_size=(args.img_height, args.img_width),
-        patch_size=args.patch_size,
-        in_channels=3,
-        embedding_dim=args.embedding_dim
+    num_patches = (args.img_height // args.patch_size) * (args.img_width // args.patch_size)
+    mobilenet = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
+    backbone = Backbone(model=mobilenet)
+    patch_embedding = PatchEmbedding(
+        backbone=backbone,
+        num_patches=num_patches,
+        rows=args.img_height // args.patch_size,
+        cols=args.img_width // args.patch_size
     )
-    
+    backbone_output_dim = 576
+    pos_embedding = PosEmbedding(
+        dim=backbone_output_dim,
+        num_patches=num_patches
+    )
+    patch_embed = PatchEmbedWithPos(
+        patch_embedding=patch_embedding,
+        pos_embedding=pos_embedding
+    )
     transformer_blocks = [
         TransformerBlock(
-            embedding_dim=args.embedding_dim,
+            embedding_dim=backbone_output_dim, 
             num_heads=args.num_heads,
             mlp_dim=args.mlp_dim,
             dropout=args.dropout
@@ -112,7 +127,7 @@ def create_model(args):
         patch_embed=patch_embed,
         transformer_blocks=transformer_blocks,
         num_classes=args.num_classes,
-        embedding_dim=args.embedding_dim,
+        embedding_dim=backbone_output_dim, 
         hidden_dim=args.hidden_classifier,
         dropout=args.dropout
     )
