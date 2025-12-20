@@ -70,8 +70,8 @@ class TextRecognizerDataset(Dataset):
         
         label_tensor = torch.tensor(label_indices, dtype=torch.long)
         
-        rows = 4
-        cols = 2
+        rows = 7
+        cols = 4
         
         return image, label_tensor, rows, cols
 
@@ -162,8 +162,8 @@ def parse_args():
 
 
 def create_model(args):
-    rows = 4
-    cols = 2
+    rows = 7
+    cols = 4
     num_patches = rows * cols
     
     mobilenet = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
