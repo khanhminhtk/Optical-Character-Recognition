@@ -3,7 +3,9 @@ import os
 from pathlib import Path
 import argparse
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
+import cv2
+import numpy as np
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -16,6 +18,82 @@ from infrastructure.ml.models.vit_ctc.backbone import Backbone
 from infrastructure.ml.models.vit_ctc.transformer import TransformerBlock
 from infrastructure.ml.models.vit_ctc.trainer_factory import create_trainer, create_trainer_with_ctc
 from torchvision.models.mobilenetv3 import MobileNet_V3_Small_Weights, mobilenet_v3_small
+
+
+class TextRecognizerDataset(Dataset):
+    def __init__(self, data_dir, labels_file='labels.txt', split='train', train_ratio=0.8):
+        self.data_dir = Path(data_dir)
+        self.split = split
+        self.samples = []
+        
+        with open(self.data_dir / labels_file, 'r') as f:
+            lines = f.readlines()
+        
+        for line in lines:
+            parts = line.strip().split()
+            if len(parts) >= 2:
+                img_path = parts[0]
+                label = ' '.join(parts[1:])
+                img_name = os.path.basename(img_path)
+                local_img_path = self.data_dir / img_name
+                
+                if local_img_path.exists():
+                    self.samples.append((str(local_img_path), label))
+        
+        total = len(self.samples)
+        split_idx = int(total * train_ratio)
+        
+        if split == 'train':
+            self.samples = self.samples[:split_idx]
+        else:
+            self.samples = self.samples[split_idx:]
+        
+        self.char_to_idx = {chr(i): i-ord('a') for i in range(ord('a'), ord('z')+1)}
+        self.char_to_idx[' '] = 26
+        self.idx_to_char = {v: k for k, v in self.char_to_idx.items()}
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        img_path, label = self.samples[idx]
+        
+        image = cv2.imread(img_path)
+        if image is None:
+            image = np.zeros((224, 224, 3), dtype=np.uint8)
+        
+        label_lower = label.lower()
+        label_indices = []
+        for char in label_lower:
+            if char in self.char_to_idx:
+                label_indices.append(self.char_to_idx[char])
+        
+        if len(label_indices) == 0:
+            label_indices = [26]
+        
+        label_tensor = torch.tensor(label_indices, dtype=torch.long)
+        
+        rows = 4
+        cols = 2
+        
+        return image, label_tensor, rows, cols
+
+
+def collate_fn(batch):
+    images, labels, rows, cols = zip(*batch)
+    
+    max_label_len = max(len(label) for label in labels)
+    
+    padded_labels = []
+    for label in labels:
+        padded = torch.nn.functional.pad(label, (0, max_label_len - len(label)), value=26)
+        padded_labels.append(padded)
+    
+    labels_tensor = torch.stack(padded_labels)
+    rows_tensor = torch.tensor(rows, dtype=torch.long)
+    cols_tensor = torch.tensor(cols, dtype=torch.long)
+    
+    return images, labels_tensor, rows_tensor[0].item(), cols_tensor[0].item()
 
 
 def parse_args():
@@ -206,29 +284,45 @@ def main():
             gradient_clip_val=args.gradient_clip
         )
     
-    print("✓ Trainer created")
-    print("\n⚠ Warning: Data loading not implemented!")
-    print("Please implement your dataset and data loaders in this script.")
-    print("\nExample:")
-    print("  from your_module import YourDataset")
-    print("  train_dataset = YourDataset(args.data_dir, split='train')")
-    print("  train_loader = DataLoader(train_dataset, batch_size=args.batch_size, ...)")
-    print("  val_loader = DataLoader(val_dataset, batch_size=args.batch_size, ...)")
-    print("\nThen call:")
-    print("  trainer.train(train_loader, val_loader, num_epochs=args.num_epochs)")
+    print("Trainer created")
     
-    # print("\n✓ Starting training...")
-    # trainer.train(
-    #     train_loader=train_loader,
-    #     val_loader=val_loader,
-    #     num_epochs=args.num_epochs,
-    #     save_every=args.save_every
-    # )
+    print("\nLoading datasets...")
+    train_dataset = TextRecognizerDataset(args.data_dir, split='train', train_ratio=0.8)
+    val_dataset = TextRecognizerDataset(args.data_dir, split='val', train_ratio=0.8)
+    
+    print(f"Train samples: {len(train_dataset)}")
+    print(f"Val samples: {len(val_dataset)}")
+    
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.num_workers,
+        collate_fn=collate_fn,
+        pin_memory=True if device == 'cuda' else False
+    )
+    
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        collate_fn=collate_fn,
+        pin_memory=True if device == 'cuda' else False
+    )
+    
+    print("\nStarting training...")
+    trainer.train(
+        train_loader=train_loader,
+        val_loader=val_loader,
+        num_epochs=args.num_epochs,
+        save_every=args.save_every
+    )
     
     print("\n" + "="*60)
-    print("Setup Complete!")
+    print("Training Complete!")
     print("="*60)
-    print(f"Checkpoints will be saved to: {args.checkpoint_dir}")
+    print(f"Checkpoints saved to: {args.checkpoint_dir}")
     print(f"TensorBoard logs: {args.tensorboard_dir}")
     print("="*60)
 
