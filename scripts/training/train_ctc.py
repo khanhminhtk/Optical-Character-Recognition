@@ -183,7 +183,7 @@ def create_model(args):
         rows=rows,
         cols=cols
     )
-    backbone_output_dim = 576
+    backbone_output_dim = 1000
     pos_embedding = PosEmbedding(
         dim=backbone_output_dim,
         num_patches=num_patches
