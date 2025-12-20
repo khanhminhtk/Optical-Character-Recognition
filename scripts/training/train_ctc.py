@@ -171,14 +171,17 @@ def parse_args():
 
 
 def create_model(args):
-    num_patches = (args.img_height // args.patch_size) * (args.img_width // args.patch_size)
+    rows = 4
+    cols = 2
+    num_patches = rows * cols
+    
     mobilenet = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
     backbone = Backbone(model=mobilenet)
     patch_embedding = PatchEmbedding(
         backbone=backbone,
         num_patches=num_patches,
-        rows=args.img_height // args.patch_size,
-        cols=args.img_width // args.patch_size
+        rows=rows,
+        cols=cols
     )
     backbone_output_dim = 576
     pos_embedding = PosEmbedding(
