@@ -113,22 +113,20 @@ def create_model(args):
         patch_embedding=patch_embedding,
         pos_embedding=pos_embedding
     )
-    transformer_blocks = [
-        TransformerBlock(
-            n_block=1,
-            nhead=args.num_heads,
-            dim=backbone_output_dim,
-            drop_out=args.dropout
-        )
-        for _ in range(args.num_layers)
-    ]
+    
+    transformer = TransformerBlock(
+        n_block=args.num_layers,
+        nhead=args.num_heads,
+        dim=backbone_output_dim,
+        drop_out=args.dropout
+    )
     
     model = ModelTextRecoginizer(
-        patch_embed=patch_embed,
-        transformer_blocks=transformer_blocks,
+        patchembedwithpos=patch_embed,
+        transformer=transformer,
         num_classes=args.num_classes,
-        embedding_dim=backbone_output_dim, 
-        hidden_dim=args.hidden_classifier,
+        embedding_dim=backbone_output_dim,
+        hidden_classifier=args.hidden_classifier,
         dropout=args.dropout
     )
     
