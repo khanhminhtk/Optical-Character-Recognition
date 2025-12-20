@@ -82,14 +82,14 @@ class TextRecognizerDataset(Dataset):
 def collate_fn(batch):
     images, labels, rows, cols = zip(*batch)
     
-    max_label_len = max(len(label) for label in labels)
-    
-    padded_labels = []
+    first_chars = []
     for label in labels:
-        padded = torch.nn.functional.pad(label, (0, max_label_len - len(label)), value=26)
-        padded_labels.append(padded)
+        if len(label) > 0:
+            first_chars.append(label[0])
+        else:
+            first_chars.append(torch.tensor(26, dtype=torch.long))
     
-    labels_tensor = torch.stack(padded_labels)
+    labels_tensor = torch.stack(first_chars)
     
     return list(images), labels_tensor, rows[0], cols[0]
 
