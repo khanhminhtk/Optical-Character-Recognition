@@ -90,10 +90,8 @@ def collate_fn(batch):
         padded_labels.append(padded)
     
     labels_tensor = torch.stack(padded_labels)
-    rows_tensor = torch.tensor(rows, dtype=torch.long)
-    cols_tensor = torch.tensor(cols, dtype=torch.long)
     
-    return images, labels_tensor, rows_tensor[0].item(), cols_tensor[0].item()
+    return list(images), labels_tensor, rows[0], cols[0]
 
 
 def parse_args():
@@ -312,12 +310,75 @@ def main():
     )
     
     print("\nStarting training...")
-    trainer.train(
-        train_loader=train_loader,
-        val_loader=val_loader,
-        num_epochs=args.num_epochs,
-        save_every=args.save_every
-    )
+    
+    best_val_loss = float('inf')
+    for epoch in range(args.num_epochs):
+        model.train()
+        train_loss = 0.0
+        train_correct = 0
+        train_total = 0
+        
+        from tqdm import tqdm
+        pbar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{args.num_epochs} [Train]')
+        
+        for batch_idx, (images, labels, rows, cols) in enumerate(pbar):
+            labels = labels.to(device)
+            
+            trainer.optimizer.zero_grad()
+            outputs = model(images, rows, cols)
+            loss = trainer.loss_fn(outputs, labels)
+            loss.backward()
+            
+            if args.gradient_clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.gradient_clip)
+            
+            trainer.optimizer.step()
+            
+            train_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            train_total += labels.size(0)
+            train_correct += (predicted == labels).sum().item()
+            
+            pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+        
+        avg_train_loss = train_loss / len(train_loader)
+        train_acc = 100.0 * train_correct / train_total
+        
+        model.eval()
+        val_loss = 0.0
+        val_correct = 0
+        val_total = 0
+        
+        with torch.no_grad():
+            for images, labels, rows, cols in val_loader:
+                labels = labels.to(device)
+                outputs = model(images, rows, cols)
+                loss = trainer.loss_fn(outputs, labels)
+                
+                val_loss += loss.item()
+                _, predicted = torch.max(outputs.data, 1)
+                val_total += labels.size(0)
+                val_correct += (predicted == labels).sum().item()
+        
+        avg_val_loss = val_loss / len(val_loader)
+        val_acc = 100.0 * val_correct / val_total
+        
+        print(f"\nEpoch {epoch+1}/{args.num_epochs}")
+        print(f"Train Loss: {avg_train_loss:.4f}, Train Acc: {train_acc:.2f}%")
+        print(f"Val Loss: {avg_val_loss:.4f}, Val Acc: {val_acc:.2f}%")
+        
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            save_path = os.path.join(args.checkpoint_dir, 'best_model.pt')
+            os.makedirs(args.checkpoint_dir, exist_ok=True)
+            torch.save(model.state_dict(), save_path)
+            print(f"Saved best model to {save_path}")
+        
+        if (epoch + 1) % args.save_every == 0:
+            save_path = os.path.join(args.checkpoint_dir, f'model_epoch_{epoch+1}.pt')
+            os.makedirs(args.checkpoint_dir, exist_ok=True)
+            torch.save(model.state_dict(), save_path)
+            print(f"Saved checkpoint to {save_path}")
     
     print("\n" + "="*60)
     print("Training Complete!")
