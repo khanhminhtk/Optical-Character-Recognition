@@ -7,3 +7,4 @@ notebooks/
 **/*.md
 .vscode/
 text_detection_test/
+temp/
