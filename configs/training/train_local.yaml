@@ -1,5 +1,3 @@
-# Training configuration for Local machine
-
 data:
   raw_data_path: "./data/raw"
   xml_file: "words.xml"
@@ -18,14 +16,13 @@ data:
     - "ñ"
 
 train:
-  model_name: "yolov8s"
+  model_name: "yolo11n"
   pretrained: true
   weights: null
-  
-  # Reduce for local testing
+
   epochs: 50
   imgsz: 640
-  batch_size: 8
+  batch_size: 4
   
   optimizer: "auto"
   lr0: 0.01
@@ -34,7 +31,7 @@ train:
   augment: true
   
   project: "./models"
-  name: "yolov8_text_detect"
+  name: "yolo11n_text_detect"
   save_period: 10
   
-  device: null  # auto-detect
+  device: null

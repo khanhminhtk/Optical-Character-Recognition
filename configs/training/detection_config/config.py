@@ -1,29 +1,18 @@
-"""
-Configuration for Text Detection Training
-"""
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
 import os
 import yaml
 
-
 @dataclass
 class DataConfig:
-    """Data configuration"""
     raw_data_path: str = ""
     xml_file: str = "words.xml"
     output_dir: str = ""
-    
-    # Split ratios
     val_size: float = 0.2
     test_size: float = 0.125
     seed: int = 42
     shuffle: bool = True
-    
-    # Class config
     class_names: List[str] = field(default_factory=lambda: ["text"])
-    
-    # Filter config
     exclude_chars: List[str] = field(default_factory=lambda: ["é", "ñ"])
     
     @property
@@ -37,56 +26,43 @@ class DataConfig:
 
 @dataclass
 class TrainConfig:
-    """Training configuration"""
-    # Model
-    model_name: str = "yolov8s"
+    model_name: str = "yolo11n"
     pretrained: bool = True
     weights: Optional[str] = None
-    
-    # Training params
+
     epochs: int = 200
-    imgsz: int = 1024
+    imgsz: int = 640
     batch_size: int = 16
     
-    # Optimizer
     optimizer: str = "auto"
     lr0: float = 0.01
     weight_decay: float = 0.0005
     
-    # Augmentation
     augment: bool = True
-    
-    # Save
     project: str = "models"
-    name: str = "yolov8_text_detect"
+    name: str = "yolo11n_text_detect"
     save_period: int = 10
-    
-    # Device
-    device: Optional[str] = None  # auto-detect if None
+    device: Optional[str] = None
 
 
 @dataclass
 class Config:
-    """Main configuration"""
     data: DataConfig = field(default_factory=DataConfig)
     train: TrainConfig = field(default_factory=TrainConfig)
     
     @classmethod
     def from_dict(cls, config_dict: dict) -> "Config":
-        """Create config from dictionary"""
         data_config = DataConfig(**config_dict.get("data", {}))
         train_config = TrainConfig(**config_dict.get("train", {}))
         return cls(data=data_config, train=train_config)
     
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "Config":
-        """Load config from YAML file"""
         with open(yaml_path, 'r') as f:
             config_dict = yaml.safe_load(f)
         return cls.from_dict(config_dict)
     
     def to_yaml(self, yaml_path: str) -> None:
-        """Save config to YAML file"""
         config_dict = {
             'data': {
                 'raw_data_path': self.data.raw_data_path,
@@ -121,16 +97,12 @@ class Config:
             yaml.dump(config_dict, f, default_flow_style=False)
     
     def merge_with_args(self, args) -> "Config":
-        """Merge config with command line arguments (args override config)"""
-        # Override data config
         if hasattr(args, 'raw_data') and args.raw_data:
             self.data.raw_data_path = args.raw_data
         if hasattr(args, 'output_dir') and args.output_dir:
             self.data.output_dir = args.output_dir
         if hasattr(args, 'xml_file') and args.xml_file:
             self.data.xml_file = args.xml_file
-            
-        # Override train config
         if hasattr(args, 'model') and args.model:
             self.train.model_name = args.model
         if hasattr(args, 'epochs') and args.epochs:
