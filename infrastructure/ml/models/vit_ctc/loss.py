@@ -69,6 +69,8 @@ class CombinedLoss(nn.Module):
     def forward(self, outputs, targets, **kwargs):
         total_loss = 0
         
+        has_ctc_lengths = 'input_lengths' in kwargs and 'target_lengths' in kwargs
+        
         for loss_fn, weight in zip(self.losses, self.weights):
             if isinstance(loss_fn, CTCLoss):
                 input_lengths = kwargs.get('input_lengths')
@@ -79,7 +81,11 @@ class CombinedLoss(nn.Module):
                 
                 log_probs = F.log_softmax(outputs, dim=-1)
                 loss = loss_fn(log_probs, targets, input_lengths, target_lengths)
+                total_loss += weight * loss
             else:
+                if has_ctc_lengths:
+                    continue
+                
                 if self.apply_softmax and not self.has_ctc:
                     outputs_processed = F.log_softmax(outputs, dim=-1)
                 else:
@@ -89,8 +95,7 @@ class CombinedLoss(nn.Module):
                     outputs_processed = outputs_processed.mean(dim=1)
                 
                 loss = loss_fn(outputs_processed, targets)
-            
-            total_loss += weight * loss
+                total_loss += weight * loss
         
         return total_loss
 
