@@ -1,0 +1,48 @@
+# Default configuration for Text Detection Training
+
+data:
+  raw_data_path: ""           # Path to raw data directory
+  xml_file: "words.xml"       # XML annotation filename
+  output_dir: ""              # Output directory for processed data
+  
+  # Split ratios
+  val_size: 0.2
+  test_size: 0.125
+  seed: 42
+  shuffle: true
+  
+  # Classes
+  class_names:
+    - "text"
+  
+  # Filter characters
+  exclude_chars:
+    - "é"
+    - "ñ"
+
+train:
+  # Model
+  model_name: "yolov8s"       # yolov8n, yolov8s, yolov8m, yolov8l, yolov8x
+  pretrained: true
+  weights: null               # Path to custom weights (optional)
+  
+  # Training params
+  epochs: 200
+  imgsz: 1024
+  batch_size: 16
+  
+  # Optimizer
+  optimizer: "auto"
+  lr0: 0.01
+  weight_decay: 0.0005
+  
+  # Augmentation
+  augment: true
+  
+  # Save
+  project: "models"
+  name: "yolov8_text_detect"
+  save_period: 10
+  
+  # Device
+  device: null                # null = auto, "cuda", "cpu", "0", "0,1"

@@ -1,0 +1,1 @@
+"""Text Recognition Bounded Context"""

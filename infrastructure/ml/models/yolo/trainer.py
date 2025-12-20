@@ -5,7 +5,8 @@ import yaml
 
 from ultralytics import YOLO
 
-from src.model.text_detection.config.trainconfig import TrainConfigs
+from infrastructure.ml.models.yolo.config.trainconfig import TrainConfigs
+
 
 class Trainer:
     def __init__(self, config: TrainConfigs):

@@ -1,0 +1,40 @@
+# Training configuration for Local machine
+
+data:
+  raw_data_path: "./data/raw"
+  xml_file: "words.xml"
+  output_dir: "./data/yolo_data"
+  
+  val_size: 0.2
+  test_size: 0.125
+  seed: 42
+  shuffle: true
+  
+  class_names:
+    - "text"
+  
+  exclude_chars:
+    - "é"
+    - "ñ"
+
+train:
+  model_name: "yolov8s"
+  pretrained: true
+  weights: null
+  
+  # Reduce for local testing
+  epochs: 50
+  imgsz: 640
+  batch_size: 8
+  
+  optimizer: "auto"
+  lr0: 0.01
+  weight_decay: 0.0005
+  
+  augment: true
+  
+  project: "./models"
+  name: "yolov8_text_detect"
+  save_period: 10
+  
+  device: null  # auto-detect

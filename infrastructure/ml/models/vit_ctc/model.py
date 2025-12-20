@@ -2,8 +2,8 @@ from typing import List, Any
 
 import torch.nn as nn
 
-from src.model.text_recoginizer.pos_patch_embed import PatchEmbedWithPos
-from src.model.text_recoginizer.transformer import TransformerBlock
+from infrastructure.ml.models.vit_ctc.pos_patch_embed import PatchEmbedWithPos
+from infrastructure.ml.models.vit_ctc.transformer import TransformerBlock
 
 class ModelTextRecoginizer(nn.Module):
     def __init__(

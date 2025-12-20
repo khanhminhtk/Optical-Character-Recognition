@@ -3,7 +3,7 @@ import cv2
 import torch
 import torch.nn as nn
 
-from src.model.text_recoginizer.abstraction import IBackbone
+from infrastructure.ml.models.vit_ctc.abstraction import IBackbone
 
 class PatchEmbedding(nn.Module):
     def __init__(self, backbone: IBackbone, num_patches: int = 8, rows: int = 4, cols: int = 2):

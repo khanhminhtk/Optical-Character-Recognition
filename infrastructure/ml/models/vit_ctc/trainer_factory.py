@@ -2,10 +2,10 @@ import torch
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
 
-from src.model.text_recoginizer.trainer import TrainerTextRecoginizer
-from src.model.text_recoginizer.model import ModelTextRecoginizer
-from src.model.text_recoginizer.loss import CombinedLoss, FocalLoss, LabelSmoothingLoss, CTCLoss
-from src.model.text_recoginizer.earlystopping import EarlyStopping
+from infrastructure.ml.models.vit_ctc.trainer import TrainerTextRecoginizer
+from infrastructure.ml.models.vit_ctc.model import ModelTextRecoginizer
+from infrastructure.ml.models.vit_ctc.loss import CombinedLoss, FocalLoss, LabelSmoothingLoss, CTCLoss
+from infrastructure.ml.models.vit_ctc.earlystopping import EarlyStopping
 
 
 def create_trainer(

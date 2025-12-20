@@ -10,10 +10,10 @@ import numpy as np
 from datetime import datetime
 import json
 
-from src.model.text_recoginizer.model import ModelTextRecoginizer
-from src.model.text_recoginizer.loss import CombinedLoss, FocalLoss, LabelSmoothingLoss
-from src.model.text_recoginizer.earlystopping import EarlyStopping
-from src.model.text_recoginizer.metricstracker import MetricsTracker
+from infrastructure.ml.models.vit_ctc.model import ModelTextRecoginizer
+from infrastructure.ml.models.vit_ctc.loss import CombinedLoss, FocalLoss, LabelSmoothingLoss, CTCLoss
+from infrastructure.ml.models.vit_ctc.earlystopping import EarlyStopping
+from infrastructure.ml.models.vit_ctc.metricstracker import MetricsTracker
 
 class TrainerTextRecoginizer:
     def __init__(

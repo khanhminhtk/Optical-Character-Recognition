@@ -3,7 +3,7 @@ from typing import List, Any
 import torch
 import torch.nn as nn
 
-from src.model.text_recoginizer.abstraction import IPatchEmbedding, IPosEmbedding
+from infrastructure.ml.models.vit_ctc.abstraction import IPatchEmbedding, IPosEmbedding
 
 class PatchEmbedWithPos(nn.Module):
     def __init__(self, patch_embedding: IPatchEmbedding, pos_embedding: IPosEmbedding):

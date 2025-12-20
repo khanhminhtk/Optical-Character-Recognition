@@ -1,0 +1,13 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements/requirements.txt requirements/requirements_trainer.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -r requirements_trainer.txt
+
+# Copy application
+COPY . .
+
+# Default command
+CMD ["python", "application/text_recognition/train_recognizer.py"]

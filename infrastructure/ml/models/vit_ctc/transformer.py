@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class TransformerBlock(nn.Module):
     def __init__(self, n_block, nhead, dim, drop_out):
         super().__init__()
