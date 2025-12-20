@@ -115,10 +115,10 @@ def create_model(args):
     )
     transformer_blocks = [
         TransformerBlock(
-            embedding_dim=backbone_output_dim, 
-            num_heads=args.num_heads,
-            mlp_dim=args.mlp_dim,
-            dropout=args.dropout
+            n_block=1,
+            nhead=args.num_heads,
+            dim=backbone_output_dim,
+            drop_out=args.dropout
         )
         for _ in range(args.num_layers)
     ]
