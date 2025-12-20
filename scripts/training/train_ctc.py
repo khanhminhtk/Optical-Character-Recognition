@@ -237,11 +237,12 @@ def main():
     print(f"CTC Blank:         {args.ctc_blank}")
     print("="*60)
     print()
-    print("✓ Creating model...")
+    print("Creating model...")
     model = create_model(args)
-    print(f"✓ Model created with {sum(p.numel() for p in model.parameters()):,} parameters")
+    model = model.to(device)
+    print(f"Model created with {sum(p.numel() for p in model.parameters()):,} parameters")
 
-    print("✓ Creating trainer...")
+    print("Creating trainer...")
     if args.use_ctc:
         trainer = create_trainer_with_ctc(
             model=model,
