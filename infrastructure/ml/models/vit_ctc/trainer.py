@@ -82,9 +82,13 @@ class TrainerTextRecoginizer:
             
             if use_ctc:
                 batch_size = len(images)
-                if outputs.dim() == 2:
+                if outputs.dim() == 3:
+                    seq_len = outputs.size(1)
+                    outputs = outputs.permute(1, 0, 2)
+                else:
+                    seq_len = 1
                     outputs = outputs.unsqueeze(0)
-                input_lengths = torch.full((batch_size,), outputs.size(0), dtype=torch.long, device=self.device)
+                input_lengths = torch.full((batch_size,), seq_len, dtype=torch.long, device=self.device)
                 loss = self.loss_fn(outputs, labels, input_lengths=input_lengths, target_lengths=target_lengths)
             else:
                 loss = self.loss_fn(outputs, labels)
@@ -143,9 +147,13 @@ class TrainerTextRecoginizer:
                 
                 if use_ctc:
                     batch_size = len(images)
-                    if outputs.dim() == 2:
+                    if outputs.dim() == 3:
+                        seq_len = outputs.size(1)
+                        outputs = outputs.permute(1, 0, 2)
+                    else:
+                        seq_len = 1
                         outputs = outputs.unsqueeze(0)
-                    input_lengths = torch.full((batch_size,), outputs.size(0), dtype=torch.long, device=self.device)
+                    input_lengths = torch.full((batch_size,), seq_len, dtype=torch.long, device=self.device)
                     loss = self.loss_fn(outputs, labels, input_lengths=input_lengths, target_lengths=target_lengths)
                 else:
                     loss = self.loss_fn(outputs, labels)

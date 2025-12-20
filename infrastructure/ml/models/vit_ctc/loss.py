@@ -71,18 +71,13 @@ class CombinedLoss(nn.Module):
         
         for loss_fn, weight in zip(self.losses, self.weights):
             if isinstance(loss_fn, CTCLoss):
-                log_probs = F.log_softmax(outputs, dim=-1)
-                if log_probs.dim() == 2:
-                    log_probs = log_probs.unsqueeze(0)
-                elif log_probs.dim() == 3:
-                    log_probs = log_probs.permute(1, 0, 2)
-                
                 input_lengths = kwargs.get('input_lengths')
                 target_lengths = kwargs.get('target_lengths')
                 
                 if input_lengths is None or target_lengths is None:
                     raise ValueError("CTC loss requires 'input_lengths' and 'target_lengths' in kwargs")
                 
+                log_probs = F.log_softmax(outputs, dim=-1)
                 loss = loss_fn(log_probs, targets, input_lengths, target_lengths)
             else:
                 if self.apply_softmax and not self.has_ctc:
