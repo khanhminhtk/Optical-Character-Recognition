@@ -62,18 +62,33 @@ class TrainerTextRecoginizer:
         self.train_metrics = MetricsTracker()
         self.val_metrics = MetricsTracker()
     
-    def train_epoch(self, train_loader, epoch: int):
+    def train_epoch(self, train_loader, epoch: int, use_ctc=False):
         self.model.train()
         self.train_metrics.reset()
         
         pbar = tqdm(train_loader, desc=f'Epoch {epoch+1} [Train]', 
                    leave=False, dynamic_ncols=True)
         
-        for batch_idx, (images, labels, rows, cols) in enumerate(pbar):
-            images = images.to(self.device)
+        for batch_idx, batch_data in enumerate(pbar):
+            if use_ctc:
+                images, labels, target_lengths, rows, cols = batch_data
+                target_lengths = target_lengths.to(self.device)
+            else:
+                images, labels, rows, cols = batch_data
+                target_lengths = None
+            
             labels = labels.to(self.device)
-            outputs = self.model(images, rows, cols)
-            loss = self.loss_fn(outputs, labels)
+            outputs = self.model(images, rows, cols, return_sequence=use_ctc)
+            
+            if use_ctc:
+                batch_size = len(images)
+                if outputs.dim() == 2:
+                    outputs = outputs.unsqueeze(0)
+                input_lengths = torch.full((batch_size,), outputs.size(0), dtype=torch.long, device=self.device)
+                loss = self.loss_fn(outputs, labels, input_lengths=input_lengths, target_lengths=target_lengths)
+            else:
+                loss = self.loss_fn(outputs, labels)
+            
             loss.backward()
 
             if self.gradient_clip_val > 0:
@@ -87,8 +102,12 @@ class TrainerTextRecoginizer:
             self.optimizer.step()
             self.optimizer.zero_grad()
             
-            _, predicted = torch.max(outputs.data, 1)
-            self.train_metrics.update(loss.item(), predicted, labels)
+            if not use_ctc:
+                _, predicted = torch.max(outputs.data, 1)
+                self.train_metrics.update(loss.item(), predicted, labels)
+            else:
+                self.train_metrics.update(loss.item(), None, None)
+            
             pbar.set_postfix({
                 'loss': f'{loss.item():.4f}',
                 'grad_norm': f'{grad_norm:.2f}' if self.gradient_clip_val > 0 else 'N/A'
@@ -103,7 +122,7 @@ class TrainerTextRecoginizer:
         metrics = self.train_metrics.compute()
         return metrics
     
-    def validate(self, val_loader, epoch: int):
+    def validate(self, val_loader, epoch: int, use_ctc=False):
         self.model.eval()
         self.val_metrics.reset()
         
@@ -111,23 +130,39 @@ class TrainerTextRecoginizer:
                    leave=False, dynamic_ncols=True)
         
         with torch.no_grad():
-            for images, labels, rows, cols in pbar:
-                images = images.to(self.device)
+            for batch_data in pbar:
+                if use_ctc:
+                    images, labels, target_lengths, rows, cols = batch_data
+                    target_lengths = target_lengths.to(self.device)
+                else:
+                    images, labels, rows, cols = batch_data
+                    target_lengths = None
+                
                 labels = labels.to(self.device)
+                outputs = self.model(images, rows, cols, return_sequence=use_ctc)
                 
-                outputs = self.model(images, rows, cols)
+                if use_ctc:
+                    batch_size = len(images)
+                    if outputs.dim() == 2:
+                        outputs = outputs.unsqueeze(0)
+                    input_lengths = torch.full((batch_size,), outputs.size(0), dtype=torch.long, device=self.device)
+                    loss = self.loss_fn(outputs, labels, input_lengths=input_lengths, target_lengths=target_lengths)
+                else:
+                    loss = self.loss_fn(outputs, labels)
                 
-                loss = self.loss_fn(outputs, labels)
+                if not use_ctc:
+                    _, predicted = torch.max(outputs.data, 1)
+                    self.val_metrics.update(loss.item(), predicted, labels)
+                else:
+                    self.val_metrics.update(loss.item(), None, None)
                 
-                _, predicted = torch.max(outputs.data, 1)
-                self.val_metrics.update(loss.item(), predicted, labels)
                 pbar.set_postfix({'loss': f'{loss.item():.4f}'})
         
         metrics = self.val_metrics.compute()
         return metrics
     
     def train(self, train_loader, val_loader, num_epochs: int, 
-              save_every: int = 5, log_images: bool = False):
+              save_every: int = 5, log_images: bool = False, use_ctc: bool = False):
         print("=" * 80)
         print(f"Starting Training on {self.device}")
         print("=" * 80)
@@ -135,26 +170,33 @@ class TrainerTextRecoginizer:
         print(f"Early stopping patience: {self.early_stopping.patience}")
         print(f"Gradient clipping: {self.gradient_clip_val}")
         print(f"TensorBoard: {'Enabled' if self.use_tensorboard else 'Disabled'}")
+        print(f"Use CTC: {use_ctc}")
         print("=" * 80)
         
         try:
             for epoch in range(self.current_epoch, num_epochs):
                 print(f"\nEpoch [{epoch + 1}/{num_epochs}]")
 
-                train_metrics = self.train_epoch(train_loader, epoch)
+                train_metrics = self.train_epoch(train_loader, epoch, use_ctc=use_ctc)
                 self.train_losses.append(train_metrics['loss'])
-                self.train_accuracies.append(train_metrics['accuracy'])
+                if not use_ctc:
+                    self.train_accuracies.append(train_metrics['accuracy'])
                 
-                val_metrics = self.validate(val_loader, epoch)
+                val_metrics = self.validate(val_loader, epoch, use_ctc=use_ctc)
                 self.val_losses.append(val_metrics['loss'])
-                self.val_accuracies.append(val_metrics['accuracy'])
+                if not use_ctc:
+                    self.val_accuracies.append(val_metrics['accuracy'])
                 
                 current_lr = self.optimizer.param_groups[0]['lr']
                 self.learning_rates.append(current_lr)
                 
                 print(f"\nResults:")
-                print(f"  Train Loss: {train_metrics['loss']:.4f} | Accuracy: {train_metrics['accuracy']:.2f}%")
-                print(f"  Val Loss:   {val_metrics['loss']:.4f} | Accuracy: {val_metrics['accuracy']:.2f}%")
+                if not use_ctc:
+                    print(f"  Train Loss: {train_metrics['loss']:.4f} | Accuracy: {train_metrics['accuracy']:.2f}%")
+                    print(f"  Val Loss:   {val_metrics['loss']:.4f} | Accuracy: {val_metrics['accuracy']:.2f}%")
+                else:
+                    print(f"  Train Loss: {train_metrics['loss']:.4f}")
+                    print(f"  Val Loss:   {val_metrics['loss']:.4f}")
                 print(f"  Learning Rate: {current_lr:.6f}")
 
                 if self.writer:
@@ -162,10 +204,11 @@ class TrainerTextRecoginizer:
                         'train': train_metrics['loss'],
                         'val': val_metrics['loss']
                     }, epoch)
-                    self.writer.add_scalars('Accuracy', {
-                        'train': train_metrics['accuracy'],
-                        'val': val_metrics['accuracy']
-                    }, epoch)
+                    if not use_ctc:
+                        self.writer.add_scalars('Accuracy', {
+                            'train': train_metrics['accuracy'],
+                            'val': val_metrics['accuracy']
+                        }, epoch)
                     self.writer.add_scalar('LearningRate', current_lr, epoch)
 
                     if 'per_class_accuracy' in val_metrics:

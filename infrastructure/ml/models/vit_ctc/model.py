@@ -24,10 +24,15 @@ class ModelTextRecoginizer(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(hidden_classifier, num_classes)
         )
-    def forward(self, images: List[Any], rows, cols):
+    def forward(self, images: List[Any], rows, cols, return_sequence=False):
         out_patch = self.patchembedwithpos(images, rows, cols)
         out_transformer = self.transformer(out_patch)
-        out_pool = out_transformer.mean(dim=1)
-        out_logits = self.classifier(out_pool)
-        return out_logits
+        
+        if return_sequence:
+            out_logits = self.classifier(out_transformer)
+            return out_logits
+        else:
+            out_pool = out_transformer.mean(dim=1)
+            out_logits = self.classifier(out_pool)
+            return out_logits
 
