@@ -19,6 +19,7 @@ class PatchEmbedding(nn.Module):
     def forward(self, X: torch.Tensor):
         batch_size, num_patches, C, H, W = X.shape
         X = X.view(batch_size * num_patches, C, H, W)
+        X = X.to(self.mean.device)
         X = X.float() / 255.0
         X = (X - self.mean) / self.std
         embeddings = self.backbone.get_model(X)
