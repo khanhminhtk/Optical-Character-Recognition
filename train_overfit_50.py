@@ -60,6 +60,14 @@ def prepare_subset_data(source_dir, output_dir, num_samples=50):
     labels_out = os.path.join(output_dir, 'labels.txt')
     with open(labels_out, 'w') as f:
         f.writelines(new_labels)
+        
+    # Validating list of images
+    selected_list_out = os.path.join(output_dir, 'selected_images.txt')
+    with open(selected_list_out, 'w') as f:
+        for img_name, _, _ in selected:
+            f.write(f"{img_name}\n")
+    
+    print(f"Created selected images list: {selected_list_out}")
     
     print(f"Copied {len(selected)} images to {output_dir}")
     print(f"Created labels file: {labels_out}")
@@ -110,8 +118,8 @@ class OverfitDataset(Dataset):
         
         label_tensor = torch.tensor(label_indices, dtype=torch.long)
         
-        rows = 7
-        cols = 4
+        rows = 1
+        cols = 10
         
         return image, label_tensor, rows, cols, img_name
 
@@ -126,10 +134,10 @@ def collate_fn(batch):
 
 
 def create_model():
-    rows = 7
-    cols = 4
+    rows = 1
+    cols = 10
     num_patches = rows * cols
-    num_classes = 27
+    num_classes = 28
     
     mobilenet = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
     backbone = Backbone(model=mobilenet)
@@ -214,7 +222,7 @@ def main():
     print()
     
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    ctc_loss_fn = torch.nn.CTCLoss(blank=26, zero_infinity=True)
+    ctc_loss_fn = torch.nn.CTCLoss(blank=27, zero_infinity=True)
     
     os.makedirs(checkpoint_dir, exist_ok=True)
     

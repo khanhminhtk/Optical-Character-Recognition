@@ -21,9 +21,11 @@ from torchvision.models.mobilenetv3 import MobileNet_V3_Small_Weights, mobilenet
 
 
 class TextRecognizerDataset(Dataset):
-    def __init__(self, data_dir, labels_file='labels.txt', split='train', train_ratio=0.8):
+    def __init__(self, data_dir, labels_file='labels.txt', split='train', train_ratio=0.8, rows=1, cols=32):
         self.data_dir = Path(data_dir)
         self.split = split
+        self.rows = rows
+        self.cols = cols
         self.samples = []
         
         with open(self.data_dir / labels_file, 'r') as f:
@@ -70,10 +72,7 @@ class TextRecognizerDataset(Dataset):
         
         label_tensor = torch.tensor(label_indices, dtype=torch.long)
         
-        rows = 7
-        cols = 4
-        
-        return image, label_tensor, rows, cols
+        return image, label_tensor, self.rows, self.cols
 
 
 def collate_fn(batch):
@@ -111,8 +110,9 @@ def parse_args():
                         help='MLP dimension')
     parser.add_argument('--hidden_classifier', type=int, default=512,
                         help='Hidden classifier dimension')
-    parser.add_argument('--num_classes', type=int, default=27,
-                        help='Number of classes (26 chars + 1 blank for CTC)')
+    parser.add_argument('--num_classes', type=int, default=28,
+                        help='Number of classes (26 chars + 1 space + 1 blank)')
+    
     parser.add_argument('--dropout', type=float, default=0.1,
                         help='Dropout rate')
     
@@ -138,8 +138,13 @@ def parse_args():
     
     parser.add_argument('--use_ctc', action='store_true',
                         help='Use CTC loss')
-    parser.add_argument('--ctc_blank', type=int, default=26,
+    parser.add_argument('--ctc_blank', type=int, default=27,
                         help='CTC blank index')
+    
+    parser.add_argument('--rows', type=int, default=1,
+                        help='Number of rows in patch grid')
+    parser.add_argument('--cols', type=int, default=10,
+                        help='Number of columns in patch grid')
     
     parser.add_argument('--use_scheduler', action='store_true',
                         help='Use learning rate scheduler')
@@ -162,8 +167,8 @@ def parse_args():
 
 
 def create_model(args):
-    rows = 7
-    cols = 4
+    rows = args.rows
+    cols = args.cols
     num_patches = rows * cols
     
     mobilenet = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
@@ -228,7 +233,9 @@ def main():
     print(f"Learning Rate:     {args.lr}")
     print(f"Device:            {device}")
     print(f"Use CTC:           {args.use_ctc}")
+    print(f"Use CTC:           {args.use_ctc}")
     print(f"CTC Blank:         {args.ctc_blank}")
+    print(f"Grid Layout:       {args.rows}x{args.cols}")
     print("="*60)
     print()
     print("Creating model...")
@@ -280,8 +287,21 @@ def main():
     print("Trainer created")
     
     print("\nLoading datasets...")
-    train_dataset = TextRecognizerDataset(args.data_dir, split='train', train_ratio=0.8)
-    val_dataset = TextRecognizerDataset(args.data_dir, split='val', train_ratio=0.8)
+    print("\nLoading datasets...")
+    train_dataset = TextRecognizerDataset(
+        args.data_dir, 
+        split='train', 
+        train_ratio=0.8,
+        rows=args.rows,
+        cols=args.cols
+    )
+    val_dataset = TextRecognizerDataset(
+        args.data_dir, 
+        split='val', 
+        train_ratio=0.8,
+        rows=args.rows,
+        cols=args.cols
+    )
     
     print(f"Train samples: {len(train_dataset)}")
     print(f"Val samples: {len(val_dataset)}")
