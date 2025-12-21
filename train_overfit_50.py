@@ -46,7 +46,24 @@ def prepare_subset_data(source_dir, output_dir, num_samples=50):
     
     print(f"Found {len(valid_samples)} valid samples")
     
-    selected = random.sample(valid_samples, min(num_samples, len(valid_samples)))
+    # Force include '000013.jpg' if available (for debugging 'wines')
+    target_img = '000013.jpg'
+    forced_sample = None
+    remaining_samples = []
+    
+    for s in valid_samples:
+        if s[0] == target_img:
+            forced_sample = s
+        else:
+            remaining_samples.append(s)
+            
+    num_to_sample = min(num_samples, len(valid_samples))
+    if forced_sample:
+        print(f"Force including {target_img}")
+        selected = [forced_sample] + random.sample(remaining_samples, min(num_to_sample - 1, len(remaining_samples)))
+    else:
+        print(f"Warning: {target_img} not found in valid samples")
+        selected = random.sample(valid_samples, num_to_sample)
     
     print(f"Selected {len(selected)} samples for training")
     
@@ -119,7 +136,7 @@ class OverfitDataset(Dataset):
         label_tensor = torch.tensor(label_indices, dtype=torch.long)
         
         rows = 1
-        cols = 10
+        cols = 40
         
         return image, label_tensor, rows, cols, img_name
 
@@ -135,7 +152,7 @@ def collate_fn(batch):
 
 def create_model():
     rows = 1
-    cols = 10
+    cols = 40
     num_patches = rows * cols
     num_classes = 28
     
