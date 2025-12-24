@@ -14,7 +14,7 @@ from infrastructure.ml.models.vit_ctc.transformer import TransformerBlock
 
 def create_model():
     rows = 1
-    cols = 40
+    cols = 20
     num_patches = rows * cols
     num_classes = 28
     
@@ -37,10 +37,11 @@ def create_model():
     )
     
     transformer = TransformerBlock(
-        n_block=6,
-        nhead=8,
+        n_block=1,
+        nhead=2,
         dim=backbone_output_dim,
-        drop_out=0.1
+        drop_out=0.1,
+        use_causal_mask=True
     )
     
     model = ModelTextRecoginizer(
@@ -55,16 +56,24 @@ def create_model():
     return model
 
 
-def decode_prediction(logits):
+def decode_prediction(logits, debug=False):
     # Logits: [Seq, Batch, Classes] or [Batch, Classes] (if pooled)
     # For CTC, we expect [Seq, Batch, Classes] or similar.
     # Our model returns [Batch, Seq, Classes] if return_sequence=True
     
-    # logits shape: [1, 10, 28]
+    # logits shape: [1, 20, 28]
     probabilities = torch.nn.functional.softmax(logits, dim=-1)
     max_probs, predicted_indices = torch.max(probabilities, dim=-1)
     
+    if debug:
+        print(f"\n=== DECODE DEBUG ===")
+        print(f"Max probs shape: {max_probs.shape}")
+        print(f"Max probs: {max_probs.squeeze().tolist()}")
+    
     predicted_indices = predicted_indices.squeeze().tolist()
+    
+    if debug:
+        print(f"Raw predicted indices: {predicted_indices}")
     
     # CTC Decoding (Greedy)
     # 1. Collapse repeated characters
@@ -77,22 +86,37 @@ def decode_prediction(logits):
         if idx != prev_idx:
             decoded_indices.append(idx)
         prev_idx = idx
+    
+    if debug:
+        print(f"After collapse repeats: {decoded_indices}")
         
     final_indices = [i for i in decoded_indices if i != 27]
+    
+    if debug:
+        print(f"After remove blanks (27): {final_indices}")
     
     char_to_idx = {chr(i): i-ord('a') for i in range(ord('a'), ord('z')+1)}
     char_to_idx[' '] = 26
     idx_to_char = {v: k for k, v in char_to_idx.items()}
     
+    if debug:
+        print(f"idx_to_char mapping: {idx_to_char}")
+    
     predicted_text = ""
     for idx in final_indices:
         if idx in idx_to_char:
             predicted_text += idx_to_char[idx]
+        elif debug:
+            print(f"WARNING: idx {idx} not in idx_to_char!")
+            
+    if debug:
+        print(f"Final text: '{predicted_text}'")
+        print(f"=== END DEBUG ===\n")
             
     return predicted_text
 
 def main():
-    checkpoint_path = "./temp/best_overfit.pth"
+    checkpoint_path = "./temp/checkpoints_overfit/best_overfit.pth"
     image_path = "./data_test/text_recognizer_data/000013.jpg"
     labels_file = "./data_test/text_recognizer_data/labels.txt"
     
@@ -125,10 +149,23 @@ def main():
     # and rows/cols arguments
     
     with torch.no_grad():
-        outputs = model([image], rows=1, cols=40, return_sequence=True)
-        # outputs shape: [1, 10, 28] (Batch, Seq, Class)
+        outputs = model([image], rows=1, cols=20, return_sequence=True)
+        # outputs shape: [1, 20, 28] (Batch, Seq, Class)
         
-        prediction = decode_prediction(outputs)
+        print(f"Output shape: {outputs.shape}")
+        print(f"Output min: {outputs.min():.4f}, max: {outputs.max():.4f}")
+        
+        # Get predicted classes for each position
+        predicted_indices = torch.argmax(outputs, dim=-1)
+        print(f"Predicted indices: {predicted_indices.squeeze().tolist()}")
+        
+        # Show top 3 predictions for first few positions
+        print(f"\nTop-3 predictions for first 5 positions:")
+        for i in range(min(5, outputs.shape[1])):
+            top3_probs, top3_indices = torch.topk(torch.softmax(outputs[0, i], dim=-1), k=3)
+            print(f"  Pos {i}: {top3_indices.tolist()} (probs: {top3_probs.tolist()})")
+        
+        prediction = decode_prediction(outputs, debug=True)
         
     print("\n" + "="*40)
     print(f"Prediction: '{prediction}'")
