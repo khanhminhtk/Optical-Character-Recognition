@@ -1,0 +1,10 @@
+**/__pycache__/
+**/runs/
+**/*.pt
+data*/
+model_checkpoint/
+notebooks/
+**/*.md
+.vscode/
+text_detection_test/
+temp/
