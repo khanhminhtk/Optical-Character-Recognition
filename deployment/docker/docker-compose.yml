@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  train-detection:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile.train
+    volumes:
+      - ../../data:/app/data
+      - ../../infrastructure/persistence/checkpoints:/app/infrastructure/persistence/checkpoints
+    command: python application/text_detection/train_detector.py
+    
+  train-recognition:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile.train
+    volumes:
+      - ../../data:/app/data
+      - ../../infrastructure/persistence/checkpoints:/app/infrastructure/persistence/checkpoints
+    command: python application/text_recognition/train_recognizer.py
+    
+  serve:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile.serve
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../infrastructure/persistence:/app/infrastructure/persistence

@@ -1,0 +1,37 @@
+data:
+  raw_data_path: "./data/raw"
+  xml_file: "words.xml"
+  output_dir: "./data/yolo_data"
+  
+  val_size: 0.2
+  test_size: 0.125
+  seed: 42
+  shuffle: true
+  
+  class_names:
+    - "text"
+  
+  exclude_chars:
+    - "é"
+    - "ñ"
+
+train:
+  model_name: "yolo11n"
+  pretrained: true
+  weights: null
+
+  epochs: 50
+  imgsz: 640
+  batch_size: 4
+  
+  optimizer: "auto"
+  lr0: 0.01
+  weight_decay: 0.0005
+  
+  augment: true
+  
+  project: "./models"
+  name: "yolo11n_text_detect"
+  save_period: 10
+  
+  device: null

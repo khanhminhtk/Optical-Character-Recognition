@@ -1,0 +1,39 @@
+# Training configuration for Google Colab
+
+data:
+  raw_data_path: "/content/drive/MyDrive/Code/cv/OCR/data_raw/SceneTrialTrain"
+  xml_file: "words.xml"
+  output_dir: "/content/drive/MyDrive/Code/cv/OCR/data/yolo_data"
+  
+  val_size: 0.2
+  test_size: 0.125
+  seed: 42
+  shuffle: true
+  
+  class_names:
+    - "text"
+  
+  exclude_chars:
+    - "é"
+    - "ñ"
+
+train:
+  model_name: "yolov8s"
+  pretrained: true
+  weights: null
+  
+  epochs: 200
+  imgsz: 1024
+  batch_size: 16
+  
+  optimizer: "auto"
+  lr0: 0.01
+  weight_decay: 0.0005
+  
+  augment: true
+  
+  project: "/content/drive/MyDrive/Code/cv/OCR/models"
+  name: "yolov8_text_detect"
+  save_period: 10
+  
+  device: "cuda"

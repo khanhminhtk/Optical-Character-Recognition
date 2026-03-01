@@ -1,0 +1,19 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application and models
+COPY infrastructure/ infrastructure/
+COPY application/ application/
+COPY domain/ domain/
+COPY interfaces/ interfaces/
+
+# Expose port
+EXPOSE 8000
+
+# Run API server
+CMD ["python", "interfaces/api/rest/serve.py"]
